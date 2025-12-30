@@ -32,7 +32,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                        cd ${PATH}/${COMPONENT}-ci
+                        cd "${PATH}/${COMPONENT}-ci"
                         npm install
                     """
                 }
@@ -42,7 +42,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                        cd ${PATH}/${COMPONENT}-ci
+                        cd "${PATH}/${COMPONENT}-ci"
                         npm test || true
                     """
                 }
@@ -57,7 +57,7 @@ pipeline {
                 script{
                     withSonarQubeEnv('sonar-server') {
                         sh """
-                        cd ${PATH}/${COMPONENT}-ci
+                        cd "${PATH}/${COMPONENT}-ci"
                         "${scannerHome}/bin/sonar-scanner"
                         """
                     }
@@ -141,7 +141,7 @@ pipeline {
                 script{
                     withAWS(region:'us-west-2',credentials:'aws-creds') {
                         sh """
-                            cd ${PATH}/${COMPONENT}-ci
+                            cd "${PATH}/${COMPONENT}-ci"
                             aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-west-2.amazonaws.com
                             docker build -t ${ACC_ID}.dkr.ecr.us-west-2.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
                             docker images
