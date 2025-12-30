@@ -11,6 +11,7 @@ pipeline {
         ACC_ID = "441700732169"
         PROJECT = "roboshop"
         COMPONENT = "catalogue"
+        PATH= "robo-component-manifests"
     }
     options {
         timeout(time: 10, unit: 'MINUTES') 
@@ -21,7 +22,7 @@ pipeline {
         stage('Read Version') {
             steps {
                 script{
-                    def packageJSON = readJSON file: '${COMPONENT}-ci/package.json'
+                    def packageJSON = readJSON file: "${PATH}/${COMPONENT}-ci/package.json"
                     appVersion = packageJSON.version
                     echo "app version: ${appVersion}"  
                 }
@@ -31,7 +32,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                        cd ${COMPONENT}-ci
+                        cd ${PATH}/${COMPONENT}-ci
                         npm install
                     """
                 }
@@ -41,7 +42,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                        cd ${COMPONENT}-ci
+                        cd ${PATH}/${COMPONENT}-ci
                         npm test || true
                     """
                 }
@@ -56,7 +57,7 @@ pipeline {
                 script{
                     withSonarQubeEnv('sonar-server') {
                         sh """
-                        cd ${COMPONENT}-ci
+                        cd ${PATH}/${COMPONENT}-ci
                         "${scannerHome}/bin/sonar-scanner"
                         """
                     }
@@ -99,9 +100,9 @@ pipeline {
                             exit 1
                         fi
 
-                        # 3. Filter by Severity AND Subfolder (${COMPONENT}-ci)
+                        # 3. Filter by Severity AND Subfolder (${PATH}/${COMPONENT}-ci)
                         # Use --arg to pass the folder name into jq safely
-                        high_critical_open_count=\$(echo "\$response" | jq --arg SUBFOLDER "${COMPONENT}-ci/" '[.[] 
+                        high_critical_open_count=\$(echo "\$response" | jq --arg SUBFOLDER "${PATH}/${COMPONENT}-ci/" '[.[] 
                             | select(
                                 .state == "open"
                                 and (.security_advisory.severity == "high" or .security_advisory.severity == "critical")
@@ -109,14 +110,14 @@ pipeline {
                             )
                         ] | length')
 
-                        echo "Open HIGH/CRITICAL alerts in ${COMPONENT}-ci/: \$high_critical_open_count"
+                        echo "Open HIGH/CRITICAL alerts in ${PATH}/${COMPONENT}-ci/: \$high_critical_open_count"
 
                         # 4. Conditional Logic
                         if [ "\$high_critical_open_count" -gt 0 ]; then
-                            echo "❌ Blocking pipeline due to OPEN HIGH/CRITICAL Dependabot alerts in ${COMPONENT}-ci/"
+                            echo "❌ Blocking pipeline due to OPEN HIGH/CRITICAL Dependabot alerts in ${PATH}/${COMPONENT}-ci/"
                             echo "Affected dependencies:"
                             
-                            echo "\$response" | jq --arg SUBFOLDER "${COMPONENT}-ci/" '.[] 
+                            echo "\$response" | jq --arg SUBFOLDER "${PATH}/${COMPONENT}-ci/" '.[] 
                             | select(.state=="open" 
                                 and (.security_advisory.severity=="high" or .security_advisory.severity=="critical")
                                 and (.dependency.manifest_path | contains(\$SUBFOLDER))
@@ -129,7 +130,7 @@ pipeline {
                             }'
                             exit 1
                         else
-                            echo "✅ No OPEN HIGH/CRITICAL Dependabot alerts found in ${COMPONENT}-ci/"
+                            echo "✅ No OPEN HIGH/CRITICAL Dependabot alerts found in ${PATH}/${COMPONENT}-ci/"
                         fi
                     """
                 }
@@ -140,7 +141,7 @@ pipeline {
                 script{
                     withAWS(region:'us-west-2',credentials:'aws-creds') {
                         sh """
-                            cd ${COMPONENT}-ci
+                            cd ${PATH}/${COMPONENT}-ci
                             aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-west-2.amazonaws.com
                             docker build -t ${ACC_ID}.dkr.ecr.us-west-2.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
                             docker images
