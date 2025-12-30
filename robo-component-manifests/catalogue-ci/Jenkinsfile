@@ -21,7 +21,7 @@ pipeline {
         stage('Read Version') {
             steps {
                 script{
-                    def packageJSON = readJSON file: 'catalogue/package.json'
+                    def packageJSON = readJSON file: '${COMPONENT}-ci/package.json'
                     appVersion = packageJSON.version
                     echo "app version: ${appVersion}"  
                 }
@@ -31,7 +31,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                        cd catalogue
+                        cd ${COMPONENT}-ci
                         npm install
                     """
                 }
@@ -41,7 +41,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                        cd catalogue
+                        cd ${COMPONENT}-ci
                         npm test || true
                     """
                 }
@@ -56,7 +56,7 @@ pipeline {
                 script{
                     withSonarQubeEnv('sonar-server') {
                         sh """
-                        cd catalogue
+                        cd ${COMPONENT}-ci
                         "${scannerHome}/bin/sonar-scanner"
                         """
                     }
@@ -75,7 +75,7 @@ pipeline {
         stage('Dependabot Security Gate') {
             environment {
                 GITHUB_OWNER = 'sathishdevops38'
-                GITHUB_REPO  = 'roboshop-jenkins'
+                GITHUB_REPO  = 'roboshop-components-ci-cd'
                 GITHUB_API   = 'https://api.github.com'
                 // This creates a shell variable named github_auth
                 github_auth  = credentials('github_auth') 
@@ -99,9 +99,9 @@ pipeline {
                             exit 1
                         fi
 
-                        # 3. Filter by Severity AND Subfolder (catalogue)
+                        # 3. Filter by Severity AND Subfolder (${COMPONENT}-ci)
                         # Use --arg to pass the folder name into jq safely
-                        high_critical_open_count=\$(echo "\$response" | jq --arg SUBFOLDER "catalogue/" '[.[] 
+                        high_critical_open_count=\$(echo "\$response" | jq --arg SUBFOLDER "${COMPONENT}-ci/" '[.[] 
                             | select(
                                 .state == "open"
                                 and (.security_advisory.severity == "high" or .security_advisory.severity == "critical")
@@ -109,14 +109,14 @@ pipeline {
                             )
                         ] | length')
 
-                        echo "Open HIGH/CRITICAL alerts in catalogue/: \$high_critical_open_count"
+                        echo "Open HIGH/CRITICAL alerts in ${COMPONENT}-ci/: \$high_critical_open_count"
 
                         # 4. Conditional Logic
                         if [ "\$high_critical_open_count" -gt 0 ]; then
-                            echo "❌ Blocking pipeline due to OPEN HIGH/CRITICAL Dependabot alerts in catalogue/"
+                            echo "❌ Blocking pipeline due to OPEN HIGH/CRITICAL Dependabot alerts in ${COMPONENT}-ci/"
                             echo "Affected dependencies:"
                             
-                            echo "\$response" | jq --arg SUBFOLDER "catalogue/" '.[] 
+                            echo "\$response" | jq --arg SUBFOLDER "${COMPONENT}-ci/" '.[] 
                             | select(.state=="open" 
                                 and (.security_advisory.severity=="high" or .security_advisory.severity=="critical")
                                 and (.dependency.manifest_path | contains(\$SUBFOLDER))
@@ -129,7 +129,7 @@ pipeline {
                             }'
                             exit 1
                         else
-                            echo "✅ No OPEN HIGH/CRITICAL Dependabot alerts found in catalogue/"
+                            echo "✅ No OPEN HIGH/CRITICAL Dependabot alerts found in ${COMPONENT}-ci/"
                         fi
                     """
                 }
@@ -140,7 +140,7 @@ pipeline {
                 script{
                     withAWS(region:'us-west-2',credentials:'aws-creds') {
                         sh """
-                            cd catalogue
+                            cd ${COMPONENT}-ci
                             aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.us-west-2.amazonaws.com
                             docker build -t ${ACC_ID}.dkr.ecr.us-west-2.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
                             docker images
