@@ -1,4 +1,4 @@
-@Library('joboshop-jenkins-shared-library') _
+@Library('roboshop-jenkins-shared-library') _
 
 properties([
   parameters([
