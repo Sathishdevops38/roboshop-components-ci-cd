@@ -1,8 +1,8 @@
 @Library('roboshop-jenkins-shared-library') _
 
-def configMap[
-    project= "roboshop"
-    component= "frontend"
+def configMap = [
+    project: "roboshop",
+    component: "frontend"
 ]
 
 // if branch is not equal to main, then run CI pipeline
