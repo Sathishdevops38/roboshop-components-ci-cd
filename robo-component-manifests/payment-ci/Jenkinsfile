@@ -2,7 +2,7 @@
 
 def configMap[
     project= "roboshop"
-    component= "catalogue"
+    component= "payment"
 ]
 
 // if branch is not equal to main, then run CI pipeline
