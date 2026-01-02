@@ -14,6 +14,7 @@ def configMap = [
     deploy_to: (params.deploy_to       ?: 'dev'),
     appVersion: (params.appVersion)
 ]    
+
 echo "Going to execute Jenkins shared library"
 echo "ConfigMap: ${configMap}"
 
